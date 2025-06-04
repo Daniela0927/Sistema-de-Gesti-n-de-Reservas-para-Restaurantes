@@ -1,1 +1,1 @@
-# Sistema-de-Gesti-n-de-Reservas-para-Restaurantes
+# Sistema-de-Gestion-de-Reservas-para-Restaurantes
