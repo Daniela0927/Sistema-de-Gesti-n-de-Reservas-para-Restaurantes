@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReservaFácil - Sistema de Reservas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ReservaFácil</h1>
+            <p>Sistema de gestión de reservas para restaurantes</p>
+        </header>
+
+        <section class="reserva-form">
+            <h2>Nueva Reserva</h2>
+            <form id="reservaForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Teléfono:</label>
+                    <input type="tel" id="telefono" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha">Fecha:</label>
+                    <input type="date" id="fecha" required>
+                </div>
+                <div class="form-group">
+                    <label for="hora">Hora:</label>
+                    <input type="time" id="hora" required>
+                </div>
+                <div class="form-group">
+                    <label for="personas">Número de personas:</label>
+                    <input type="number" id="personas" min="1" required>
+                </div>
+                <button type="submit">Reservar</button>
+            </form>
+        </section>
+
+        <section class="reservas-list">
+            <h2>Reservas del Día</h2>
+            <div class="filtros">
+                <label for="filtroFecha">Ver reservas de:</label>
+                <input type="date" id="filtroFecha">
+            </div>
+            <div id="listaReservas"></div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
