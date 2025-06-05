@@ -1,121 +1,226 @@
-// Sistema de Reservas 100% JavaScript
+// Clase para manejar las reservas
+class ReservaFacil {
+    constructor() {
+        // Inicializar variables
+        this.reservas = [];
+        this.config = {
+            capacidadMaxima: 50,
+            horarioApertura: '10:00',
+            horarioCierre: '22:00',
+            duracionReserva: 90
+        };
 
-// Configuración inicial
-const CAPACIDAD_MAXIMA = 30;
-const LOCAL_STORAGE_KEY = 'reservas';
+        // Cargar datos guardados
+        this.cargarDatos();
 
-// Cargar reservas desde localStorage
-let reservas = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+        // Inicializar eventos
+        this.inicializarEventos();
+    }
 
-// Elementos del DOM
-const reservaForm = document.getElementById('reservaForm');
-const listaReservas = document.getElementById('listaReservas');
-const filtroFecha = document.getElementById('filtroFecha');
+    // Cargar datos del localStorage
+    cargarDatos() {
+        if (localStorage.getItem('reservas')) {
+            this.reservas = JSON.parse(localStorage.getItem('reservas'));
+        }
 
-// Funciones principales
+        if (localStorage.getItem('config')) {
+            this.config = JSON.parse(localStorage.getItem('config'));
+        }
+    }
 
-// 1. Guardar reservas en localStorage
-function guardarReservas() {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(reservas));
-}
+    // Guardar datos en localStorage
+    guardarDatos() {
+        localStorage.setItem('reservas', JSON.stringify(this.reservas));
+        localStorage.setItem('config', JSON.stringify(this.config));
+    }
 
-// 2. Registrar nueva reserva
-function registrarReserva(event) {
-    event.preventDefault();
-    
-    const nombre = document.getElementById('nombre').value;
-    const telefono = document.getElementById('telefono').value;
-    const fecha = document.getElementById('fecha').value;
-    const hora = document.getElementById('hora').value;
-    const personas = parseInt(document.getElementById('personas').value);
+    // Inicializar eventos
+    inicializarEventos() {
+        // Navegación
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.mostrarSeccion(link.id.replace('nav-', ''));
+            });
+        });
+
+        // Formulario de reserva
+        document.getElementById('form-reserva').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.crearReserva();
+        });
+
+        // Formulario de configuración
+        document.getElementById('form-config').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.guardarConfiguracion();
+        });
+
+        // Filtro de fecha
+        document.getElementById('filtro-fecha').addEventListener('change', (e) => {
+            this.mostrarReservas(e.target.value);
+        });
+
+        // Botón "Hoy"
+        document.getElementById('btn-hoy').addEventListener('click', () => {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-fecha').value = hoy;
+            this.mostrarReservas(hoy);
+        });
+
+        // Cargar configuración inicial
+        this.cargarConfiguracion();
+    }
+
+    // Mostrar sección específica
+    mostrarSeccion(seccion) {
+        // Ocultar todas las secciones
+        document.querySelectorAll('main section').forEach(s => {
+            s.classList.remove('active');
+        });
+
+        // Mostrar la sección seleccionada
+        document.getElementById(`seccion-${seccion}`).classList.add('active');
+
+        // Actualizar navegación
+        document.querySelectorAll('nav li').forEach(li => {
+            li.classList.remove('active');
+        });
+        document.querySelector(`#nav-${seccion}`).parentElement.classList.add('active');
+
+        // Si es la sección de reservas, mostrar las de hoy
+        if (seccion === 'calendario') {
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro-fecha').value = hoy;
+            this.mostrarReservas(hoy);
+        }
+    }
+
+    // Crear nueva reserva
+    crearReserva() {
+        const form = document.getElementById('form-reserva');
+        const reserva = {
+            id: Date.now(),
+            nombre: form.nombre.value,
+            telefono: form.telefono.value,
+            fecha: form.fecha.value,
+            hora: form.hora.value,
+            comensales: parseInt(form.comensales.value),
+            notas: form.notas.value,
+            estado: 'confirmada'
+        };
+
+        // Validar capacidad
+        if (!this.validarCapacidad(reserva)) {
+            alert('No hay suficiente capacidad para esta reserva');
+            return;
+        }
+
+        // Agregar reserva
+        this.reservas.push(reserva);
+        this.guardarDatos();
+        form.reset();
+        alert('Reserva creada exitosamente');
+        this.mostrarReservas(reserva.fecha);
+    }
 
     // Validar capacidad
-    if (!validarCapacidad(fecha, hora, personas)) {
-        alert('No hay suficiente capacidad para esa fecha y hora');
-        return;
+    validarCapacidad(nuevaReserva) {
+        const reservasMismoHorario = this.reservas.filter(r => 
+            r.fecha === nuevaReserva.fecha && 
+            r.hora === nuevaReserva.hora
+        );
+
+        const totalComensales = reservasMismoHorario.reduce((sum, r) => sum + r.comensales, 0);
+        return (totalComensales + nuevaReserva.comensales) <= this.config.capacidadMaxima;
     }
 
-    const nuevaReserva = {
-        id: Date.now(),
-        nombre,
-        telefono,
-        fecha,
-        hora,
-        personas,
-        estado: 'confirmada'
-    };
+    // Mostrar reservas por fecha
+    mostrarReservas(fecha) {
+        const reservasFecha = this.reservas
+            .filter(r => r.fecha === fecha)
+            .sort((a, b) => a.hora.localeCompare(b.hora));
 
-    reservas.push(nuevaReserva);
-    guardarReservas();
-    actualizarListaReservas();
-    reservaForm.reset();
-    alert('Reserva registrada con éxito');
-}
+        const lista = document.getElementById('lista-reservas');
+        lista.innerHTML = '';
 
-// 3. Validar capacidad
-function validarCapacidad(fecha, hora, personas) {
-    const reservasMismoHorario = reservas.filter(r => 
-        r.fecha === fecha && 
-        r.hora === hora &&
-        r.estado === 'confirmada'
-    );
+        if (reservasFecha.length === 0) {
+            lista.innerHTML = '<p class="empty-message">No hay reservas para esta fecha</p>';
+            return;
+        }
 
-    const totalPersonas = reservasMismoHorario.reduce((sum, r) => sum + r.personas, 0);
-    return (totalPersonas + personas) <= CAPACIDAD_MAXIMA;
-}
+        reservasFecha.forEach(reserva => {
+            const item = document.createElement('div');
+            item.className = 'reserva-item';
+            item.innerHTML = `
+                <div class="reserva-info">
+                    <h3>${reserva.nombre}</h3>
+                    <p><strong>Hora:</strong> ${reserva.hora}</p>
+                    <p><strong>Comensales:</strong> ${reserva.comensales}</p>
+                    ${reserva.notas ? `<p><strong>Notas:</strong> ${reserva.notas}</p>` : ''}
+                </div>
+                <div class="reserva-acciones">
+                    <button class="btn btn-secondary" onclick="reservaFacil.editarReserva(${reserva.id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-danger" onclick="reservaFacil.cancelarReserva(${reserva.id})">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            `;
+            lista.appendChild(item);
+        });
+    }
 
-// 4. Mostrar reservas
-function actualizarListaReservas(fecha = new Date().toISOString().split('T')[0]) {
-    const reservasFiltradas = reservas.filter(r => r.fecha === fecha);
-    
-    listaReservas.innerHTML = reservasFiltradas
-        .map(r => `
-            <div class="reserva-item">
-                <p><strong>Nombre:</strong> ${r.nombre}</p>
-                <p><strong>Teléfono:</strong> ${r.telefono}</p>
-                <p><strong>Hora:</strong> ${r.hora}</p>
-                <p><strong>Personas:</strong> ${r.personas}</p>
-                <button onclick="cancelarReserva(${r.id})">Cancelar</button>
-                <button onclick="modificarReserva(${r.id})">Modificar</button>
-            </div>
-        `)
-        .join('');
-}
+    // Cargar configuración en el formulario
+    cargarConfiguracion() {
+        const form = document.getElementById('form-config');
+        form.nombreRestaurante.value = this.config.nombreRestaurante || '';
+        form.capacidadMaxima.value = this.config.capacidadMaxima;
+        form.horarioApertura.value = this.config.horarioApertura;
+        form.horarioCierre.value = this.config.horarioCierre;
+        form.duracionReserva.value = this.config.duracionReserva;
+    }
 
-// 5. Cancelar reserva
-function cancelarReserva(id) {
-    const reserva = reservas.find(r => r.id === id);
-    if (reserva) {
-        reserva.estado = 'cancelada';
-        guardarReservas();
-        actualizarListaReservas();
-        alert('Reserva cancelada');
+    // Guardar configuración
+    guardarConfiguracion() {
+        const form = document.getElementById('form-config');
+        this.config = {
+            nombreRestaurante: form.nombreRestaurante.value,
+            capacidadMaxima: parseInt(form.capacidadMaxima.value),
+            horarioApertura: form.horarioApertura.value,
+            horarioCierre: form.horarioCierre.value,
+            duracionReserva: parseInt(form.duracionReserva.value)
+        };
+        this.guardarDatos();
+        alert('Configuración guardada exitosamente');
+    }
+
+    // Editar reserva
+    editarReserva(id) {
+        const reserva = this.reservas.find(r => r.id === id);
+        if (!reserva) return;
+
+        const modal = document.getElementById('modal-reserva');
+        const form = document.getElementById('form-editar-reserva');
+
+        // Llenar formulario con datos actuales
+        form.reservaId.value = reserva.id;
+        form.modalNombre.value = reserva.nombre;
+        // Llenar otros campos...
+
+        modal.classList.add('active');
+    }
+
+    // Cancelar reserva
+    cancelarReserva(id) {
+        if (confirm('¿Está seguro de cancelar esta reserva?')) {
+            this.reservas = this.reservas.filter(r => r.id !== id);
+            this.guardarDatos();
+            this.mostrarReservas(document.getElementById('filtro-fecha').value);
+        }
     }
 }
 
-// 6. Modificar reserva
-function modificarReserva(id) {
-    const reserva = reservas.find(r => r.id === id);
-    if (reserva) {
-        // Llenar formulario con datos existentes
-        document.getElementById('nombre').value = reserva.nombre;
-        document.getElementById('telefono').value = reserva.telefono;
-        document.getElementById('fecha').value = reserva.fecha;
-        document.getElementById('hora').value = reserva.hora;
-        document.getElementById('personas').value = reserva.personas;
-        
-        // Eliminar reserva existente
-        reservas = reservas.filter(r => r.id !== id);
-        guardarReservas();
-    }
-}
-
-// Event Listeners
-reservaForm.addEventListener('submit', registrarReserva);
-filtroFecha.addEventListener('change', (e) => {
-    actualizarListaReservas(e.target.value);
-});
-
-// Inicialización
-filtroFecha.value = new Date().toISOString().split('T')[0];
-actualizarListaReservas();
+// Inicializar la aplicación
+const reservaFacil = new ReservaFacil();
