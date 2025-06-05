@@ -13,6 +13,6 @@ Características principales
 Tecnologías utilizadas
 Interfaz: HTML5, CSS3, JavaScript (Vanilla JS)
 Almacenamiento: localStorage (persistencia en el navegador)
-100% JavaScript - No requiere servidor backend
+JavaScript - No requiere servidor backend
 
 Link la pagina: https://8080-61838914-1d4b-4d18-9723-471fca2e2423.h1069.daytona.work/index.html
